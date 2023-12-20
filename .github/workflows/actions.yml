@@ -1,0 +1,9 @@
+name: run shell command
+on: [push]
+jobs:
+    shell-execution:
+        runs-on: ubuntu-latest
+        steps:
+            name: Display the output of echo
+            run: echo "Workflow run happened!"
+    
