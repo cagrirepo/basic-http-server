@@ -1,8 +1,16 @@
-name: run shell command
-on: [push, pull_request]
+name: Combined Workflow
+on: [push, pull_request, workflow_dispatch]
 jobs:
-    shell-execution:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Display the output of echo
-            run: echo "Workflow run happened!"
+  shell-execution:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display the output of echo
+        run: echo "Workflow run happened!"
+
+  on-demand:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual Trigger
+        run: echo "This is a manual trigger happened!"
