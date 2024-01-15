@@ -1,6 +1,5 @@
 package dersler.basic.http.server;
 
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -14,6 +13,7 @@ public class SimpleHttpServer {
     private ServerSocket serverSocket;
     private ExecutorService pool;
     private Set<String> dataStore = Collections.synchronizedSet(new HashSet<>());
+    private boolean running = true;
 
     public SimpleHttpServer(int port, int poolSize) throws IOException {
         serverSocket = new ServerSocket(port);
@@ -22,14 +22,20 @@ public class SimpleHttpServer {
 
     public void start() {
         System.out.println("Server started...");
-        while (true) {
+        while (running) {
             try {
                 Socket clientSocket = serverSocket.accept();
                 pool.execute(new ClientHandler(clientSocket, dataStore));
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ex) {
+                Logger.getLogger(SimpleHttpServer.class.getName()).log(Level.SEVERE, "Socket closed.");
             }
         }
+    }
+
+    public void stop() throws IOException {
+        running = false;
+        serverSocket.close();
+        pool.shutdownNow();
     }
 
     private static class ClientHandler implements Runnable {
