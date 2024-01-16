@@ -26,7 +26,7 @@ jobs:
       - name: Lint Code Base
         uses: github/super-linter/slim@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUBB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: true 
           DEFAULT_BRANCH: master
           DISABLE_ERRORS: true 
@@ -55,7 +55,7 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
           
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUBB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           
   snyk-security-scan:
@@ -70,11 +70,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --sarif-file-output=snyk.sarif
-
-      - name: Upload result to GitHub Code Scanning
+      - name: Upload results to GitHub Code Scanning Panel
         uses: github/codeql-action/upload-sarif@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUBB_TOKEN }}
         with:
           sarif_file: snyk.sarif
           
