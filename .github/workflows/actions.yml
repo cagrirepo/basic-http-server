@@ -1,14 +1,24 @@
-name: Combined Workflow
-on: [push, pull_request, workflow_dispatch]
+name: Workflows
+on:
+  push:
+    branches:
+      - main
+      - release
+  pull_request:
+    branches:
+      - main
+      - release
+  workflow_dispatch:
+  
 jobs:
-  shell-execution:
+  shell-execution-for-trigger:
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Display the output of echo
         run: echo "Workflow run happened!"
 
-  lint-code:
+  lint-code-linter:
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout Repository'
@@ -16,32 +26,32 @@ jobs:
       - name: Lint Code Base
         uses: github/super-linter/slim@v4
         env:
-          VALIDATE_ALL_CODEBASE: true
-          DEFAULT_BRANCH: master
-          DISABLE_ERRORS: true
-          VALIDATE_JAVA: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-code:
+          VALIDATE_ALL_CODEBASE: true 
+          DEFAULT_BRANCH: master
+          DISABLE_ERRORS: true 
+          VALIDATE_JAVA: true 
+          
+  build-code-maven:
     runs-on: ubuntu-latest
-    needs:  lint-code
+    needs:  lint-code-linter
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v3
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
-          server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
-          settings-path: ${{ github.workspace }} # location for the settings.xml file
+          server-id: github
+          settings-path: ${{ github.workspace }} 
           cache: maven
 
       - name: Build with Maven
         run: |
           mvn verify sonar:sonar \
-          -Dsonar.projectKey=sonarcloud-analysis_java \
-          -Dsonar.organization=sonarcloud-analysis \
+          -Dsonar.projectKey=cagrirepo_basic-http-server \
+          -Dsonar.organization=cagrirepo \
           -Dsonar.host.url=https://sonarcloud.io
           
         env:
@@ -50,23 +60,38 @@ jobs:
           
   snyk-security-scan:
     runs-on: ubuntu-latest
-    needs: build-code
+    needs: build-code-maven
     steps:
       - uses: actions/checkout@master
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/maven@master
-        continue-on-error: true # To make sure that SARIF upload gets called
+        continue-on-error: true 
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --sarif-file-output=snyk.sarif
-
-      - name: Upload result to GitHub Code Scanning
+      - name: Upload results to GitHub Code Scanning Panel
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: snyk.sarif
           
-  on-demand:
+  dast-zap-scan:
+    runs-on: ubuntu-latest
+    needs: snyk-security-scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: master
+      - name: ZAP Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          docker_name: 'owasp/zap2docker-stable'
+          target: 'http://testhtml5.vulnweb.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          
+  on-demand-trigger:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
